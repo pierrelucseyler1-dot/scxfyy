@@ -1,4 +1,5 @@
 name: Build installer
+
 on:
   push:
     branches: [main, master]
@@ -10,28 +11,40 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    defaults:
+      run:
+        working-directory: 1-upload-first
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: 1-upload-first/package-lock.json
 
-      - name: Install
-        working-directory: 1-upload-first
-        run: npm install
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build the exe files
-        working-directory: 1-upload-first
         run: npm run dist
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
-      - name: Publish a download
+      - name: Publish build artifacts
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: scxfyy launcher build ${{ github.run_number }}
+          fail_on_unmatched_files: true
+          generate_release_notes: true
           files: |
             1-upload-first/dist/scxfyy-launcher.exe
             1-upload-first/dist/scxfyy-launcher-setup.exe
